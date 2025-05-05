@@ -68,6 +68,20 @@ async function buildServer() {
         })
     })
 
+    subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
+        if (err) {
+            console.error("Failed to subscribe:", err)
+            return
+        }
+        console.log(`Subscribed successfully! This client is currently subscribed to ${CONNECTION_COUNT_UPDATED_CHANNEL} channels.`)
+    })
+
+    subscriber.on("message", (channel, text) => {
+        if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
+            console.log("Received message from channel:", channel)
+        }
+    })
+
     app.get("/healthcheck", () => {
         return { staus: "ok", port: PORT }
     })
