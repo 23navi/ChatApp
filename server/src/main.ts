@@ -55,7 +55,12 @@ async function buildServer() {
         console.log("Socket connected:", socket.id)
 
         // Every time a new client connects, we will increment the connection count.
-        await publisher.incr(CONNECTION_COUNT_KEY)
+        const incResult = await publisher.incr(CONNECTION_COUNT_KEY)
+
+        await publisher.publish(
+            CONNECTION_COUNT_UPDATED_CHANNEL,
+            String(incResult)
+        );
 
         socket.on("message", (message) => {
             console.log("Received message:", message)
@@ -64,7 +69,11 @@ async function buildServer() {
         socket.on("disconnect", async () => {
             console.log("Socket disconnected:", socket.id)
             // Every time a client disconnects, we will decrement the connection count.
-            await publisher.decr(CONNECTION_COUNT_KEY)
+            const decrResult = await publisher.decr(CONNECTION_COUNT_KEY);
+            await publisher.publish(
+                CONNECTION_COUNT_UPDATED_CHANNEL,
+                String(decrResult)
+            );
         })
     })
 
@@ -77,8 +86,10 @@ async function buildServer() {
     })
 
     subscriber.on("message", (channel, text) => {
+        console.log("Received message from channel: ", channel)
         if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
-            console.log("Received message from channel:", channel)
+            console.log("Received message from channel: ", channel)
+            app.io.emit(CONNECTION_COUNT_UPDATED_CHANNEL, { count: text })
         }
     })
 
