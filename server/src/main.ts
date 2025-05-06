@@ -4,12 +4,26 @@ import fastifyCors from "@fastify/cors"
 import fastifySocketIO from "fastify-socket.io"
 import { Server } from 'socket.io'
 import Redis from "ioredis"
+import closeWithGrace from 'close-with-grace'
 
 dotenv.config() // Reads from .env by default
 const PORT = parseInt(process.env.PORT || "3001")
 const HOST = process.env.HOST || "0.0.0.0" //Setting it to 0.0.0.0 for docker as it can't resolve localhost
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://locahost:3000"
 const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT
+
+
+let currentServerConnectionCounter = 0
+
+const NEW_MESSAGE_CHANNEL = "chat:new-message"; // Redis channel
+const MESSAGE_KEY = "chat:messages" // To store messages
+
+// function sendMessageToRoom({ room, messageContents }: { room: string, messageContents: string }) {
+//     console.log("Publishing the message to room:", room)
+//     const channel = `chat:${room}:messages`
+//     publisher.publish(channel, JSON.stringify({ room, messageContents }))
+// }
+
 
 // Redis keys
 const CONNECTION_COUNT_KEY = 'chat:connection-count'
@@ -57,15 +71,20 @@ async function buildServer() {
         // Every time a new client connects, we will increment the connection count.
         const incResult = await publisher.incr(CONNECTION_COUNT_KEY)
 
+        // Increment the local server connection count.
+        currentServerConnectionCounter++
+
         await publisher.publish(
             CONNECTION_COUNT_UPDATED_CHANNEL,
             String(incResult)
         );
 
-        socket.on("message", (message) => {
-            console.log("Received message:", message)
-            socket.broadcast.emit("message", message)
+        // Adding the new message to the channel, adding to channel is not adding the message to the db, for that we have to add it to redis as key value  (const MESSAGE_KEY = "chat:messages" // To store messages)
+        socket.on(NEW_MESSAGE_CHANNEL, async (message: Buffer) => {
+            await publisher.publish(NEW_MESSAGE_CHANNEL, message.toString())
         })
+
+
         socket.on("disconnect", async () => {
             console.log("Socket disconnected:", socket.id)
             // Every time a client disconnects, we will decrement the connection count.
@@ -74,17 +93,34 @@ async function buildServer() {
                 CONNECTION_COUNT_UPDATED_CHANNEL,
                 String(decrResult)
             );
+
+            // Decrement the current server connection count
+            currentServerConnectionCounter--
         })
     })
+
 
     subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
         if (err) {
             console.error("Failed to subscribe:", err)
             return
         }
-        console.log(`Subscribed successfully! This client is currently subscribed to ${CONNECTION_COUNT_UPDATED_CHANNEL} channels.`)
+        console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`)
+        console.log(`Subscribed successfully! This client is currently subscribed to ${CONNECTION_COUNT_UPDATED_CHANNEL} channel.`)
     })
 
+
+    subscriber.subscribe(NEW_MESSAGE_CHANNEL, (err, count) => {
+        if (err) {
+            console.error("Failed to subscribe:", err)
+            return
+        }
+        console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`)
+        console.log(`Subscribed successfully! This client is currently subscribed to ${NEW_MESSAGE_CHANNEL} channel.`)
+    })
+
+
+    // subscriber.on("message") is an emitter which runs when there is new message in any of the subscribed channel. Inside this, we will have to filter out the channel.
     subscriber.on("message", (channel, text) => {
         console.log("Received message from channel: ", channel)
         if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
@@ -102,11 +138,36 @@ async function buildServer() {
 async function main() {
     const app = await buildServer()
     try {
+
+        // Graceful shutdown handler
+        closeWithGrace({ delay: 2000 }, async function ({ signal, err, manual }) {
+            if (err) {
+                app.log.error({ err }, 'server closing with error')
+            } else {
+                app.log.info(`${signal} received, server closing`)
+            }
+
+            if (currentServerConnectionCounter > 0) {
+                console.log(`There are still connections open, closing ${currentServerConnectionCounter} connections`)
+
+                const currentGlobalConnectionCount = parseInt((await publisher.get(CONNECTION_COUNT_KEY) || '0'), 10)
+                const newGlobalConnectionCount = Math.max((currentGlobalConnectionCount - currentServerConnectionCounter), 0)
+                await publisher.set(CONNECTION_COUNT_KEY, String(newGlobalConnectionCount))
+            }
+
+            await app.close()
+        })
+
+
         await app.listen({
             port: PORT,
             host: HOST
         })
+
         console.log(`Server started at http://${HOST}:${PORT}`)
+
+
+
     } catch (e) {
         console.error(e)
         process.exit(1)
@@ -117,8 +178,7 @@ async function main() {
 main()
 
 
-
-
+// This is to tell fastify app that there is .io property on app (app.io) of type Server (coming from socketio)
 declare module 'fastify' {
     interface FastifyInstance {
         io: Server
