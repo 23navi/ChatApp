@@ -16,5 +16,24 @@ count = count -5
 
 
 
+2) Messaging system
 
+So we will have single channel message system in this app for now, we will see how to implement namespaces and rooms for group chats later.
+
+
+For now we will have one channel (For new message coming, so server will be listining from the client for this channel and then publish the message to redis publisher to a channel) then the subscriber will get the message and publish to all the connected clients (io.emit())
+
+
+
+
+
+Rooms?
+
+So for any chat, we will have to create isolations. And each isolation will be a seperate room, the concept of room comes from socketio.
+
+Even for 2 person private chat, we will have a room
+
+To handle this at scale, in our db, we can create and store rooms seperately 
+
+Create new chat -> new postgres rooms table entry.
 

@@ -15,6 +15,16 @@ const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT
 
 let currentServerConnectionCounter = 0
 
+const NEW_MESSAGE_CHANNEL = "chat:new-message"; // Redis channel
+const MESSAGE_KEY = "chat:messages" // To store messages
+
+// function sendMessageToRoom({ room, messageContents }: { room: string, messageContents: string }) {
+//     console.log("Publishing the message to room:", room)
+//     const channel = `chat:${room}:messages`
+//     publisher.publish(channel, JSON.stringify({ room, messageContents }))
+// }
+
+
 // Redis keys
 const CONNECTION_COUNT_KEY = 'chat:connection-count'
 
@@ -69,10 +79,12 @@ async function buildServer() {
             String(incResult)
         );
 
-        socket.on("message", (message) => {
-            console.log("Received message:", message)
-            socket.broadcast.emit("message", message)
+        // Adding the new message to the channel, adding to channel is not adding the message to the db, for that we have to add it to redis as key value  (const MESSAGE_KEY = "chat:messages" // To store messages)
+        socket.on(NEW_MESSAGE_CHANNEL, async (message: Buffer) => {
+            await publisher.publish(NEW_MESSAGE_CHANNEL, message.toString())
         })
+
+
         socket.on("disconnect", async () => {
             console.log("Socket disconnected:", socket.id)
             // Every time a client disconnects, we will decrement the connection count.
@@ -87,6 +99,7 @@ async function buildServer() {
         })
     })
 
+
     subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
         if (err) {
             console.error("Failed to subscribe:", err)
@@ -94,6 +107,16 @@ async function buildServer() {
         }
         console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`)
         console.log(`Subscribed successfully! This client is currently subscribed to ${CONNECTION_COUNT_UPDATED_CHANNEL} channel.`)
+    })
+
+
+    subscriber.subscribe(NEW_MESSAGE_CHANNEL, (err, count) => {
+        if (err) {
+            console.error("Failed to subscribe:", err)
+            return
+        }
+        console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`)
+        console.log(`Subscribed successfully! This client is currently subscribed to ${NEW_MESSAGE_CHANNEL} channel.`)
     })
 
 
