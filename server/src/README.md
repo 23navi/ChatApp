@@ -14,7 +14,7 @@ NO, Subscriber on redis (redis.subscribe) is to subscribe (one time function, th
 
 ```ts
 const subscriber = new Redis(REDIS_ENDPOINT);
-subscriber.subscribe("send-user-data", (err, message) => {
+subscriber.subscribe("send-user-data", (err, count) => {
   if (err) {
     console.error("Error");
     return;
@@ -22,6 +22,22 @@ subscriber.subscribe("send-user-data", (err, message) => {
   console.log(`Successfully connected to send-user-data`);
 });
 ```
+
+What is count in this subscribe()?
+
+So redis gives us a way to subscribe to multiple channels.
+
+```ts
+const subscriber = new Redis(REDIS_ENDPOINT);
+subscriber.subscribe("channel1","channel2","channel3",..., (err, count) => {
+  if (err) {
+    console.error("Error");
+    return;
+  }
+  console.log(`Successfully connected to ${count} channels`);
+});
+```
+
 
 To get message from the channel
 
@@ -32,3 +48,6 @@ subscriber.on("message", (channel, text) => {
   }
 });
 ```
+
+
+ioredis documentation: [ioredis npm](https://www.npmjs.com/package/ioredis)
