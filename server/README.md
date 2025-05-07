@@ -25,7 +25,7 @@ subscriber.subscribe("send-user-data", (err, count) => {
 
 What is count in this subscribe()?
 
-So redis gives us a way to subscribe to multiple channels.
+So redis gives us a way to subscribe to multiple channels. Count is the total connected channels. 
 
 ```ts
 const subscriber = new Redis(REDIS_ENDPOINT);

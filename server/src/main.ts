@@ -5,6 +5,7 @@ import fastifySocketIO from "fastify-socket.io"
 import { Server } from 'socket.io'
 import Redis from "ioredis"
 import closeWithGrace from 'close-with-grace'
+import { randomUUID } from "crypto"
 
 dotenv.config() // Reads from .env by default
 const PORT = parseInt(process.env.PORT || "3001")
@@ -80,8 +81,17 @@ async function buildServer() {
         );
 
         // Adding the new message to the channel, adding to channel is not adding the message to the db, for that we have to add it to redis as key value  (const MESSAGE_KEY = "chat:messages" // To store messages)
-        socket.on(NEW_MESSAGE_CHANNEL, async (message: Buffer) => {
-            await publisher.publish(NEW_MESSAGE_CHANNEL, message.toString())
+        socket.on(NEW_MESSAGE_CHANNEL, async (payload: { message: string }) => {
+
+            console.log("Is Buffer?", Buffer.isBuffer(payload)) // So the payload sent by client is not buffer.
+            console.log("Type of payload:", typeof payload)
+            console.log("Received payload:", payload)
+
+            if (!payload) {
+                console.log("Payload is empty")
+                return
+            }
+            await publisher.publish(NEW_MESSAGE_CHANNEL, (JSON.stringify(payload)))
         })
 
 
@@ -99,7 +109,6 @@ async function buildServer() {
         })
     })
 
-
     subscriber.subscribe(CONNECTION_COUNT_UPDATED_CHANNEL, (err, count) => {
         if (err) {
             console.error("Failed to subscribe:", err)
@@ -109,23 +118,31 @@ async function buildServer() {
         console.log(`Subscribed successfully! This client is currently subscribed to ${CONNECTION_COUNT_UPDATED_CHANNEL} channel.`)
     })
 
-
     subscriber.subscribe(NEW_MESSAGE_CHANNEL, (err, count) => {
         if (err) {
             console.error("Failed to subscribe:", err)
             return
         }
+
+        // Note: The count here will be 2, why? this count is total count, so we have 1 count from above subscribe, and one with this subscribe.
         console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`)
         console.log(`Subscribed successfully! This client is currently subscribed to ${NEW_MESSAGE_CHANNEL} channel.`)
     })
 
-
     // subscriber.on("message") is an emitter which runs when there is new message in any of the subscribed channel. Inside this, we will have to filter out the channel.
-    subscriber.on("message", (channel, text) => {
+    subscriber.on("message", (channel, text: string) => {
         console.log("Received message from channel: ", channel)
         if (channel === CONNECTION_COUNT_UPDATED_CHANNEL) {
             console.log("Received message from channel: ", channel)
             app.io.emit(CONNECTION_COUNT_UPDATED_CHANNEL, { count: text })
+        }
+        if (channel === NEW_MESSAGE_CHANNEL) {
+            console.log("Received message from channel: ", channel)
+            console.log("Type of payload from subscriber", typeof text)
+            console.log("Received payload from subscriber:", text)
+            const actualMessage = JSON.parse(text)
+            console.log("Actual message:", actualMessage)
+            app.io.emit(NEW_MESSAGE_CHANNEL, { id: randomUUID(), message: actualMessage })
         }
     })
 
