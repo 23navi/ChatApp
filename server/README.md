@@ -1,5 +1,7 @@
 ## Publisher and Subscriber using Redis
 
+Note: This chat app is using the custom redis implementation and is not recommended for production but for prouduction use the socketio-redis-adaptor. (chatApp3000)
+
 Redis is a key value store db but it also gives a build in publisher-subscriber capabilities
 
 To publish to a channel
