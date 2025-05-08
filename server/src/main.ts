@@ -175,15 +175,12 @@ async function main() {
             await app.close()
         })
 
-
         await app.listen({
             port: PORT,
             host: HOST
         })
 
         console.log(`Server started at http://${HOST}:${PORT}`)
-
-
 
     } catch (e) {
         console.error(e)
