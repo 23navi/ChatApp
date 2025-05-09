@@ -19,6 +19,7 @@ pnpm add @types/node tsx typescript @types/ws -D
 ```bash
 pnpm tsc --init
 ```
+
 ## UI
 ### Create Next.js app
 ```base
