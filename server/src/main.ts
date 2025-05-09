@@ -141,8 +141,8 @@ async function buildServer() {
             console.log("Type of payload from subscriber", typeof text)
             console.log("Received payload from subscriber:", text)
             const actualMessage = JSON.parse(text)
-            console.log("Actual message:", actualMessage)
-            app.io.emit(NEW_MESSAGE_CHANNEL, { id: randomUUID(), message: actualMessage })
+            // console.log("Actual message:", actualMessage)
+            app.io.emit(NEW_MESSAGE_CHANNEL, { id: randomUUID(), message: actualMessage, port: PORT }) // If the value of any key is undefined, it will not be sent in message (eg: {port: undefined won't go in message payload to client on io.emit()})
         }
     })
 
