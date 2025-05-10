@@ -10,7 +10,7 @@ import { randomUUID } from "crypto"
 dotenv.config() // Reads from .env by default
 const PORT = parseInt(process.env.PORT || "3001")
 const HOST = process.env.HOST || "0.0.0.0" //Setting it to 0.0.0.0 for docker as it can't resolve localhost
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://locahost:3000"
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000"
 const REDIS_ENDPOINT = process.env.REDIS_ENDPOINT
 
 
@@ -58,7 +58,13 @@ async function buildServer() {
         credentials: true
     })
 
-    await app.register(fastifySocketIO)
+    await app.register(fastifySocketIO, {
+        cors: {
+            origin: CORS_ORIGIN,
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    })
 
     // On app startup we will check if there are any connections, if connectionCount entry is not present in redis, we will create one with 0 connections.
     const currentConnectionsCount = await publisher.get(CONNECTION_COUNT_KEY)
