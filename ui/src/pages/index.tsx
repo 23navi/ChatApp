@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Home from "./../components/global/Home"; // Assuming your Home component is in the same directory
+import Home from "./../components/global/Home";
 
 export default function App() {
   const [showHome, setShowHome] = useState(true);
