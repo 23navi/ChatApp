@@ -29,5 +29,18 @@ export default function Home() {
       socket.off("disconnect");
     };
   }, [socket]);
+
   return <h1>Hello</h1>;
 }
+
+
+
+
+
+
+
+// In the above useEffect, we have 3 different dependency management
+
+// 1) useEffect(() => { ... }, [socket])   - Best: run the effect when the component mounts, and any time the socket value changes. 
+// 2) useEffect(() => { ... }, [])    - Won't work if the socket was null on first render (run the effect only once when the component mounts — and never again, regardless of changes to socket)
+// 3) useEffect(() => { ... }) -  Run the effect after every render, including initial render and every subsequent re-render.
