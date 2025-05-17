@@ -133,3 +133,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+html,
+body,
+#__next,
+main {
+  @apply h-full;
+}

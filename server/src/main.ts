@@ -142,13 +142,15 @@ async function buildServer() {
             console.log("Received message from channel: ", channel)
             app.io.emit(CONNECTION_COUNT_UPDATED_CHANNEL, { count: text })
         }
+
+        // Note: The client must send the json as message (on postman, by default it sends text)
         if (channel === NEW_MESSAGE_CHANNEL) {
             console.log("Received message from channel: ", channel)
             console.log("Type of payload from subscriber", typeof text)
             console.log("Received payload from subscriber:", text)
             const actualMessage = JSON.parse(text)
-            // console.log("Actual message:", actualMessage)
-            app.io.emit(NEW_MESSAGE_CHANNEL, { id: randomUUID(), message: actualMessage, port: PORT }) // If the value of any key is undefined, it will not be sent in message (eg: {port: undefined won't go in message payload to client on io.emit()})
+            console.log("Actual message:", actualMessage.message)
+            app.io.emit(NEW_MESSAGE_CHANNEL, { id: randomUUID(), message: actualMessage.message, port: PORT }) // If the value of any key is undefined, it will not be sent in message (eg: {port: undefined won't go in message payload to client on io.emit()})
         }
     })
 
