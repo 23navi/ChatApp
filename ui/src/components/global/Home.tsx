@@ -35,6 +35,8 @@ export default function Home() {
     socket?.on(NEW_MESSAGE_CHANNEL, (message: Message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
 
+      // console.log({ messages }); // <-- This is the problem (Explaination at the bottom of the page)
+
       //Wrapping scrollToBottom() in a setTimeout(() => { ... }, 0) is a common workaround to make sure the DOM is updated before you try to scroll.
       // React has a hook called useLayoutEffect, which runs after DOM mutations but before painting. You could track messages and scroll
       // useLayoutEffect(() => {
@@ -127,3 +129,22 @@ export default function Home() {
 // Note: we have two disconnect with socket socket.disconnect() and socket.on("disconnect")
 // socket.disconnect() is a method to disconnect from the react side
 // socket.on("disconnect") is an event listener which react which there is disconnect on the client side.
+
+
+
+
+
+
+
+// console.log({ messages }); // <-- This is the problem
+
+
+// socket?.on(NEW_MESSAGE_CHANNEL, (message: Message) => {
+//   setMessages((prevMessages) => [...prevMessages, message]);
+//   console.log({ messages }); // <-- This is the problem
+// });
+
+// Explaination:
+// The console.log({ messages }) does not show the updated messages, because the callback closes over the value of messages at the time the effect runs.
+// React's useState does not mutate the messages array in place, it replaces it with a new array.
+// When setMessages is called, it triggers a re-render, but the messages variable inside the current closure doesn't get updated.
