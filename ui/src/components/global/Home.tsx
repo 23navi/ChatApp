@@ -6,14 +6,14 @@ import { Message } from "@/type";
 
 // Socket channels
 const NEW_MESSAGE_CHANNEL = "chat:new-message";
-// const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated";
+const CONNECTION_COUNT_UPDATED_CHANNEL = "chat:connection-count-updated";
 
 export default function Home() {
   const socket = useSocket();
 
   const messageListRef = useRef<HTMLOListElement | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [connectionCount] = useState(0);
+  const [connectionCount, setConnectionCount] = useState(0);
   const [messages, setMessages] = useState<Array<Message>>([]);
 
   function scrollToBottom() {
@@ -45,6 +45,13 @@ export default function Home() {
       }, 0);
     });
 
+    socket?.on(
+      CONNECTION_COUNT_UPDATED_CHANNEL,
+      ({ count }: { count: number }) => {
+        setConnectionCount(count);
+      }
+    );
+
     socket.on("disconnect", () => {
       console.log("disconnected from websocket");
     });
@@ -55,6 +62,8 @@ export default function Home() {
     return () => {
       socket.off("connect", handleConnect); // Which ever listeners we add, we should remove them on component unmount
       socket.off("disconnect");
+      socket.off(NEW_MESSAGE_CHANNEL);
+      socket.off(CONNECTION_COUNT_UPDATED_CHANNEL);
     };
   }, [socket]);
 
