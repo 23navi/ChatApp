@@ -1,5 +1,5 @@
 import { useSocket } from "@/hooks/useSocket";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Message } from "@/type";
@@ -11,9 +11,17 @@ const NEW_MESSAGE_CHANNEL = "chat:new-message";
 export default function Home() {
   const socket = useSocket();
 
+  const messageListRef = useRef<HTMLOListElement | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [connectionCount] = useState(0);
   const [messages, setMessages] = useState<Array<Message>>([]);
+
+  function scrollToBottom() {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop =
+        messageListRef.current.scrollHeight + 1000;
+    }
+  }
 
   useEffect(() => {
     if (!socket) return;
@@ -27,10 +35,13 @@ export default function Home() {
     socket?.on(NEW_MESSAGE_CHANNEL, (message: Message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
 
-      console.log({ messages });
-
+      //Wrapping scrollToBottom() in a setTimeout(() => { ... }, 0) is a common workaround to make sure the DOM is updated before you try to scroll.
+      // React has a hook called useLayoutEffect, which runs after DOM mutations but before painting. You could track messages and scroll
+      // useLayoutEffect(() => {
+      //   scrollToBottom();
+      // }, [messages]);
       setTimeout(() => {
-        // scrollToBottom();
+        scrollToBottom();
       }, 0);
     });
 
@@ -55,6 +66,7 @@ export default function Home() {
     socket?.emit(NEW_MESSAGE_CHANNEL, {
       message: newMessage,
     });
+    // We are emitting object {message: "message"}, it will go as json and our backend can parse it nicely.
 
     setNewMessage("");
   }
@@ -67,7 +79,7 @@ export default function Home() {
       </h1>
       <ol
         className="flex-1 overflow-y-scroll overflow-x-hidden"
-        // ref={messageListRef}
+        ref={messageListRef}
       >
         {messages.map((m) => {
           return (
