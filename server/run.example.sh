@@ -1,8 +1,8 @@
 #! /bin/sh
 
 docker compose down
-export REDIS_ENDPOINT=
-export CORS_ORIGIN=http://localhost:3000
+# export REDIS_ENDPOINT= (make sure the env is set manually on the remote server)
+export CORS_ORIGIN=https://chat100.navisureka.in
 docker compose up -d --build
 
 
